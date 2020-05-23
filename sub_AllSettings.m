@@ -1,3 +1,13 @@
+% Author: David Reza Mittelstein (drmittelstein@gmail.com)
+% Medical Engineering, California Institute of Technology, 2020
+
+% SUBROUTINE
+% This subroutine is called in the beginning of each script to generate the params structure
+% This includes experiment specific values that should be adjusted before each experiment including:
+% * Safety paramters - that prevent the signal generator from sending a signal that could damage equipment or samples
+% * Hardware default parameters
+% * Reference parameters
+
 function params = sub_AllSettings(name)
 
 params = struct; params.Name = name; params.Time = datestr(now);

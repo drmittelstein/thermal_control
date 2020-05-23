@@ -1,3 +1,9 @@
+% Author: David Reza Mittelstein (drmittelstein@gmail.com)
+% Medical Engineering, California Institute of Technology, 2020
+
+% SUBROUTINE
+% Activate Thermal Control GUI
+
 function varargout = ThermalGUI(varargin)
 % THERMALGUI MATLAB code for ThermalGUI.fig
 %      THERMALGUI, by itself, creates a new THERMALGUI or raises the existing

@@ -1,3 +1,10 @@
+% Author: David Reza Mittelstein (drmittelstein@gmail.com)
+% Medical Engineering, California Institute of Technology, 2020
+
+% SUBROUTINE
+% Apply settings from param structure to the connected signal generator
+% Optimized for speed, only changes duty cycle
+
 function params = sub_SG_ApplySettings_DCOnly(params)
 
 if params.SG.Waveform.frequency ~= params.Transducer_Fc

@@ -1,3 +1,9 @@
+% Author: Hunter Davis
+% California Institute of Technology, 2020
+
+% SUBROUTINE
+% Convert Arduino voltage output to temperature
+
 function [output] = readTemp(s,BufferSize)
 % Serial send read request to Arduino
 nn=2;
