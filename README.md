@@ -83,7 +83,7 @@ ThermalGUI.m
 ```
 When tuning the parameters, take note of the control system architecture for this PID with anti-windup controller:
 
-![Architecture](/images/PID parameters.png)
+![Architecture](/images/PID_parameters.png)
 
 ## Contributing
 
