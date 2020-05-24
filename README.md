@@ -1,6 +1,6 @@
 # Thermal Control
 
-This repository includes scripts that allow the user to conduct thermal ultrasound experiments with closed loop control using a PID with anti-windup control system.  Scripts enable the users to align and calibrate ultrasound transducers and to control the insonation of these transducers on targets in 24 well plate platforms.
+This repository includes scripts that allow the user to conduct thermal ultrasound experiments with closed loop control using a PID with anti-windup control system.
 
 ### Software Prerequisites
 
