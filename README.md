@@ -78,11 +78,31 @@ stage_GUI.m
 
 ### Thermal Control
 
-After aligning the transducer to the hydrophone as described above, use the following script to get the pressure waveforms for various ultrasound waveforms sent through the transducer:
-
+After aligning the transducer to the hydrophone as described above, use the following script to activate the thermal control system:
 ```
 ThermalGUI.m
 ```
+Before running the script, open the script file to set in the configuration file the following key parameters seen under teh ThermalGUI_OpeningFcn function:
+```
+handles.PID.TA = 46; % Reference temperature (Celsius) for Scheme A
+handles.PID.TB = 37; % Reference temperature (Celsius) for Scheme B
+
+% Default PID with anti-windup constants
+handles.PID.Kp = 0.1;  % Proportional control
+handles.PID.Ki = 0.1;  % Integral control
+handles.PID.Kd = 0;    % Derivative control
+handles.PID.Kt = 0.25; % Anti-windup control
+
+handles.MaxVppTransducer = 50;
+% This specifies the maximum Vpp output that the control system will use
+% Safety settings are also on, make sure that the value set here will agree
+% with the limits set in safety (sub_AllSettings)
+% For example, when the PID controller is using a control value of 1, it
+% will use the MaxVppTransducer value specified above
+
+handles.data.schemeprd = 5; % Time (minutes) between scheme switch
+```
+
 When tuning the parameters, take note of the control system architecture for this PID with anti-windup controller:
 
 ![Architecture](/images/PID_parameters.png)
