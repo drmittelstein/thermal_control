@@ -2,6 +2,8 @@
 
 This repository includes scripts that allow the user to conduct thermal ultrasound experiments with closed loop control using a PID with anti-windup control system.
 
+![Demo photo](/images/PID_control.png)
+
 ### Software Prerequisites
 
 This system requires MATLAB with the Instrument Control Toolbox Support Package that is relevant for the hardware that you will be using.  For example, the code as currently written uses the "Instrument Control Toolbox Support Package for Keysight IO Libraries and VISA Interface"
