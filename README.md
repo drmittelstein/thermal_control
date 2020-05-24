@@ -2,6 +2,8 @@
 
 This repository includes scripts that allow the user to conduct thermal ultrasound experiments with closed loop control using a PID with anti-windup control system.
 
+![Demo photo](/images/PID_control.png)
+
 ### Software Prerequisites
 
 This system requires MATLAB with the Instrument Control Toolbox Support Package that is relevant for the hardware that you will be using.  For example, the code as currently written uses the "Instrument Control Toolbox Support Package for Keysight IO Libraries and VISA Interface"
@@ -76,14 +78,40 @@ stage_GUI.m
 
 ### Thermal Control
 
-After aligning the transducer to the hydrophone as described above, use the following script to get the pressure waveforms for various ultrasound waveforms sent through the transducer:
-
+After aligning the transducer to the hydrophone as described above, use the following script to activate the thermal control system:
 ```
 ThermalGUI.m
 ```
+Before running the script, open the script file to modify the following key parameters seen under the ThermalGUI_OpeningFcn function as is fit for this application:
+```
+handles.PID.TA = 46; % Reference temperature (Celsius) for Scheme A
+handles.PID.TB = 37; % Reference temperature (Celsius) for Scheme B
+
+% Default PID with anti-windup constants
+handles.PID.Kp = 0.1;  % Proportional control
+handles.PID.Ki = 0.1;  % Integral control
+handles.PID.Kd = 0;    % Derivative control
+handles.PID.Kt = 0.25; % Anti-windup control
+
+handles.MaxVppTransducer = 50;
+% This specifies the maximum Vpp output that the control system will use
+% Safety settings are also on, make sure that the value set here will agree
+% with the limits set in safety (sub_AllSettings)
+% For example, when the PID controller is using a control value of 1, it
+% will use the MaxVppTransducer value specified above
+
+handles.data.schemeprd = 5; % Time (minutes) between scheme switch
+```
+
 When tuning the parameters, take note of the control system architecture for this PID with anti-windup controller:
 
-![Architecture](/images/PID parameters.png)
+![Architecture](/images/PID_parameters.png)
+
+The values of Kp, Ki, Kd, Kt will likely vary depending on the thermal properties of the target of thermal insonation, and may need to be adjusted empirically while the thermal exposure is running.  However, prior to beginning parameter tuning, a rough estimate can be acquired through the use of the Ziegler-Nichols method [1]
+
+## References
+
+[1] Song Y-D. Control of Nonlinear Systems Via PI, PD and PID : Stability and Performance. Vol First edition. Boca Raton, FL: CRC Press; 2018. http://search.ebscohost.com.libproxy1.usc.edu/login.aspx?direct=true&db=nlebk&AN=1913747. Accessed May 21, 2020. 
 
 ## Contributing
 
