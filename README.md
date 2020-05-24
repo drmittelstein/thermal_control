@@ -82,7 +82,7 @@ After aligning the transducer to the hydrophone as described above, use the foll
 ```
 ThermalGUI.m
 ```
-Before running the script, open the script file to set in the configuration file the following key parameters seen under teh ThermalGUI_OpeningFcn function:
+Before running the script, open the script file to modify the following key parameters seen under the ThermalGUI_OpeningFcn function as is fit for this application:
 ```
 handles.PID.TA = 46; % Reference temperature (Celsius) for Scheme A
 handles.PID.TB = 37; % Reference temperature (Celsius) for Scheme B
@@ -106,6 +106,12 @@ handles.data.schemeprd = 5; % Time (minutes) between scheme switch
 When tuning the parameters, take note of the control system architecture for this PID with anti-windup controller:
 
 ![Architecture](/images/PID_parameters.png)
+
+The values of Kp, Ki, Kd, Kt will likely vary depending on the thermal properties of the target of thermal insonation, and may need to be adjusted empirically while the thermal exposure is running.  However, prior to beginning parameter tuning, a rough estimate can be acquired through the use of the Ziegler-Nichols method [1]
+
+## References
+
+[1] Song Y-D. Control of Nonlinear Systems Via PI, PD and PID : Stability and Performance. Vol First edition. Boca Raton, FL: CRC Press; 2018. http://search.ebscohost.com.libproxy1.usc.edu/login.aspx?direct=true&db=nlebk&AN=1913747. Accessed May 21, 2020. 
 
 ## Contributing
 
