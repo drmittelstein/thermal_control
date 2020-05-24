@@ -81,7 +81,9 @@ After aligning the transducer to the hydrophone as described above, use the foll
 ```
 ThermalGUI.m
 ```
+When tuning the parameters, take note of the control system architecture for this PID with anti-windup controller:
 
+![Architecture](/images/PID parameters.png)
 
 ## Contributing
 
