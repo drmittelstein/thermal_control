@@ -30,13 +30,13 @@ These scripts must all be in the same directory in order to function.  The resul
 
 ### Hardware VISA addresses
 
-Before running the scripts, the VISA address of the signal generator and oscilloscope  must be appended to the list of VISA addresses within the following files:
+Before running the scripts, the VISA address of the signal generator and oscilloscope  must be appended to the list of VISA addresses within the following file:
 
 ```
 sub_SG_Initialize.m (for the signal generator)
 ```
 
-Consult the programming manual of the signal generator and oscilloscope to determine how to find the specific instrument's VISA address.  The program should be able to find the connected Velmex motor stage and Neoptic thermometer system automatically. 
+Consult the programming manual of the signal generator to determine how to find the specific instrument's VISA address.  The program should be able to find the connected Velmex motor stage and Neoptix thermometer system automatically. 
 
 ### Hardware USB connections
 
