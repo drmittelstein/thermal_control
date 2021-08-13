@@ -53,7 +53,7 @@ Amplifier out <--> US Tx
 
 ## How to Use
 
-Prior to any experiment, update the transducer, amplifier, and safety values within:
+Prior to any experiment, update the transducer, amplifier, safety, and any other hardware parameters values within the following file.  It is important to update the amplifier gain values in this script, as it is used to determine the signal generator output for the PID controller:
 
 ```
 sub_AllSettings.m
@@ -61,7 +61,7 @@ sub_AllSettings.m
 
 ### Transducer Alignment
 
-Position both the transducer and hydrophone in a water bath, with the transducer mounted to the motor stage system.  Define a low intensity pulsed ultrasound test signal that can be run safely continuously during alignment using:
+Position both the transducer and hydrophone in a water bath, with the transducer mounted to the motor stage system.  Define an ultrasound test signal that can be run safely continuously during alignment.  This signal will be used to generate a defined area of heating at the focal point of the transducer such that the transducer can be aligned with the implanted therometer.  You can define this waveform manually or you can use the following script:
 
 ```
 SetTestingParameter.m
@@ -69,7 +69,7 @@ SetTestingParameter.m
 
 Edit the testing parameters within that file first, then execute the file to apply those changes to the signal generator.  That script will throw an error if any value violates the prior defined safety limits.
 
-Manually position the transsducer such that a signal appears on the oscilloscope.  If using a GUI would be useful in this manual course adjustment of the transducer, then run:
+Manually position the transducer such that a localized area of heating is observed on the Neoptix readout.  If using a GUI would be useful in this manual course adjustment of the transducer, then run:
 
 ```
 stage_GUI.m
@@ -84,6 +84,7 @@ ThermalGUI.m
 ```
 Before running the script, open the script file to modify the following key parameters seen under the ThermalGUI_OpeningFcn function as is fit for this application:
 ```
+% User-defined values for thermal control experiment
 handles.PID.TA = 46; % Reference temperature (Celsius) for Scheme A
 handles.PID.TB = 37; % Reference temperature (Celsius) for Scheme B
 
@@ -93,12 +94,14 @@ handles.PID.Ki = 0.1;  % Integral control
 handles.PID.Kd = 0;    % Derivative control
 handles.PID.Kt = 0.25; % Anti-windup control
 
+% Output of PID controller is peak-to-peak voltage of signal from
+% amplifier.  This value ranges from 0 to the MaxVppTransducer defined
+% below:
 handles.MaxVppTransducer = 50;
-% This specifies the maximum Vpp output that the control system will use
-% Safety settings are also on, make sure that the value set here will agree
-% with the limits set in safety (sub_AllSettings)
-% For example, when the PID controller is using a control value of 1, it
-% will use the MaxVppTransducer value specified above
+% This script will use the amplifier gain value defined in
+% sub_AllSettings, to determine the appropriate signal generator amplitude.
+% So prior to running script, ensure that amplifier gain and any 
+% transducer or amplifer safety settings are updated in sub_AllSettings
 
 handles.data.schemeprd = 5; % Time (minutes) between scheme switch
 ```

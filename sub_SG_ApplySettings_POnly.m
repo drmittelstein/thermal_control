@@ -5,7 +5,7 @@
 % Apply settings from param structure to the connected signal generator
 % Optimized for speed, only changes pressure
 
-function params = sub_SG_ApplySettings_DCOnly(params)
+function params = sub_SG_ApplySettings_POnly(params)
 
 if params.SG.Waveform.frequency ~= params.Transducer_Fc
     if ~isfield(params.SG, 'FrequencyOveride')
@@ -38,8 +38,6 @@ if params.SG.Waveform.voltage * 10^(params.Amplifier.GainDB/20) * 0.5 / sqrt(2) 
     error('Safety Stop!  Attempted to set voltage greater than maximum transducer voltage (Vrms)')
 end 
 
-
-
 if isinf(params.SG.Waveform.cycles)
     if isinf(params.Amplifier.MaxDutyCycle)
         % Safety setting allows CW configuration, no problem
@@ -57,10 +55,6 @@ else
         error('Safety Stop!  Attempted to set pulse duration higher than max pulse duration')
     end
 end
-
-
-
-
 
 if params.SG.Initialized       
         

@@ -1,7 +1,7 @@
 % Author: David Reza Mittelstein (drmittelstein@gmail.com)
 % Medical Engineering, California Institute of Technology, 2020
 
-% SUBROUTINE
+% SCRIPT
 % Activate Thermal Control GUI
 % Customizable PIDaw controls and schema parameters in ThermalGUI_OpeningFcn
 
@@ -65,6 +65,7 @@ handles.output = hObject;
 
 delete(timerfind);
 
+% User-defined values for thermal control experiment
 handles.PID.TA = 46; % Reference temperature (Celsius) for Scheme A
 handles.PID.TB = 37; % Reference temperature (Celsius) for Scheme B
 
@@ -74,106 +75,44 @@ handles.PID.Ki = 0.1;  % Integral control
 handles.PID.Kd = 0;    % Derivative control
 handles.PID.Kt = 0.25; % Anti-windup control
 
-handles.MaxVppTransducer = 50;
-% This specifies the maximum Vpp output that the control system will use
-% Safety settings are also on, make sure that the value set here will agree
-% with the limits set in safety (sub_AllSettings)
-% For example, when the PID controller is using a control value of 1, it
-% will use the MaxVppTransducer value specified above
-
 handles.data.schemeprd = 5; % Time (minutes) between scheme switch
+
+% Output of PID controller is peak-to-peak voltage of signal from
+% amplifier.  This value ranges from 0 to the MaxVppTransducer defined
+% below:
+handles.MaxVppTransducer = 50;
+% This script will use the amplifier gain value defined in
+% sub_AllSettings, to determine the appropriate signal generator amplitude.
+% So prior to running script, ensure that amplifier gain and any 
+% transducer or amplifer safety settings are updated in sub_AllSettings
 
 handles.data.scheme = 0;
 handles.data.schemetoggle = 0;
 
-
 UpdateGUI(hObject, handles);
 
-handles.PID.t = [];
-handles.PID.y = [];
-handles.PID.r = [];
-handles.PID.u = [];
-handles.PID.v = [];
-
-handles.timer = timer;
-handles.timer.TimerFcn = {@TimerTick, hObject};
-handles.timer.Period = 0.25;
-handles.timer.StartDelay = 0.25;
-handles.timer.ExecutionMode = 'fixedSpacing';
-
-handles.params = sub_AllSettings('Thermal Control');
+% Connect to hardware
+handles.params = sub_AllSettings('Thermal Control'); % Load amplifer/transducer settings
 sub_Close_All_Connections;
-
-disp('- Connecting to Neoptix Reflex Fiber Optic Temp Sensor')
-delete(instrfind('status', 'closed'));
-% First try to connect to the Neoptix without disconnecting anything
-port = 2;
-connected = 0;
-while port < 20 && ~connected
-    try
-    port = port + 1;
-    handles.sobj = serial(sprintf('COM%d',port), 'Terminator', 'CR', 'Timeout', 1);   
-    fopen(handles.sobj);
-    disp(sprintf('   > Found device on open port COM%d', port));
-    if contains(query(handles.sobj, 'i'), 'ReFlex')
-        disp(sprintf('   > Confirmed connection to Neoptix Reflex on COM%d', port))
-        fclose(handles.sobj);
-        fopen(handles.sobj);
-        connected = 1;
-    else
-        disp('   > But it is not Neoptix')
-        fclose(handles.sobj);
-        delete(instrfind('Name', sprintf('Serial-COM%1.0f',port)));
-    end
-    
-    catch
-    end
-end
-
-if ~connected
-disp('   > Could not find Neoptix on unused ports, now looking through used ports')
-disp('     this may cause other devices to disconnect');
-
-port = 2;
-connected = 0;
-while port < 100 && ~connected
-    try
-    port = port + 1;
-    dvcs = instrfind('Name', sprintf('Serial-COM%1.0f',port));
-
-    if numel(dvcs) > 0
-        disp(sprintf('   > Disconnected device on COM%1.0f', port));
-        delete(dvcs);
-    end
-    handles.sobj = serial(sprintf('COM%d',port), 'Terminator', 'CR', 'Timeout', 1);   
-    fopen(handles.sobj);
-    disp(sprintf('   > Found device on open port COM%d', port));
-    if contains(query(handles.sobj, 'i'), 'ReFlex')
-        disp(sprintf('   > Connected connection to Neoptix Reflex on COM%d', port))
-        connected = 1;
-    else
-        disp('   > But it is not Neoptix')
-    end
-    
-    catch
-    end
-end   
-
-    
-end
-delete(instrfind('status', 'closed'));
-if ~connected
-    error('Could not find Neoptix on any COM port')
-end
-
-handles.params.SG.Waveform.ch = 1;
-handles.params.SG.Waveform.frequency = 6.7E+05; % Hz
-handles.params.SG.Waveform.voltage = 5 * 10^(-handles.params.Amplifier.GainDB/20); 
-handles.params.SG.Waveform.period = 1e-3;
-
+handles.params.SG.Waveform.frequency = handles.params.Transducer_Fc;
+handles.params = sub_Neoptix_Initialize(handles.params);
 handles.params = sub_SG_Initialize(handles.params);
 handles.params = sub_SG_ApplySettings(handles.params);
 cmdUS_Callback(hObject, struct, handles);
+
+% Prepare timer and PID vectors
+
+handles.PID.t = []; % Time vector
+handles.PID.y = []; % Measured temperature vector
+handles.PID.r = []; % Reference (goal) temperature vector
+handles.PID.u = []; % Acutated control parameter vector
+handles.PID.v = []; % Theoretical control parameter vector
+
+handles.timer = timer;
+handles.timer.TimerFcn = {@TimerTick, hObject};
+handles.timer.Period = 0.25; % Defines update time interval for controller
+handles.timer.StartDelay = 0.25;
+handles.timer.ExecutionMode = 'fixedSpacing';
 
 handles.tic = tic;
 start(handles.timer);
@@ -184,13 +123,13 @@ guidata(hObject, handles);
 % UIWAIT makes ThermalGUI wait for user response (see UIRESUME)
 % uiwait(handles.figure1);
 
-
 function TimerTick(obj, event, hObject)
 handles = guidata(hObject);
 
-timenow = toc(handles.tic);
+timenow = toc(handles.tic); % Get current time (in seconds)
 set(handles.lblTime, 'String', sprintf('%02.0f:%02.0f', floor(timenow/60), mod(timenow,60)))
 
+% Handle scheme switching
 toggles = floor(timenow/(60 * handles.data.schemeprd));
 
 if toggles ~= handles.data.schemetoggle
@@ -199,16 +138,13 @@ if toggles ~= handles.data.schemetoggle
 end
 
 % Read out temperature from Neoptix
-neoptix_readout = strtrim(query(handles.sobj, 't'));
-while handles.sobj.BytesAvailable
-    fscanf(handles.sobj, '%s', handles.sobj.BytesAvailable);
+neoptix_readout = strtrim(query(handles.params.Neoptix.sobj, 't'));
+while handles.params.Neoptix.sobj.BytesAvailable
+    fscanf(handles.params.Neoptix.sobj, '%s', handles.params.Neoptix.sobj.BytesAvailable);
 end
 tempnow = str2double(neoptix_readout);
 
-% Confirm if it is a good read, default is no
-% Bad reads are not counted in the PID control system
-goodread = 0;
-
+goodread = 0; % Confirm if it is a good temperature readout
 Min_Temp = 20; % Deg C, we will assume any read below this are errors
 
 if ~isnan(tempnow)
@@ -218,7 +154,7 @@ if ~isnan(tempnow)
 end
 
 if goodread
-% Only update PID data if good read
+% Bad reads are not counted in the PID control system
 handles.PID.t(end+1) = timenow;
 handles.PID.y(end+1) = tempnow;
 handles.PID.r(end+1) = 0;
@@ -226,30 +162,33 @@ handles.PID.u(end+1) = 0;
 handles.PID.v(end+1) = 0;
 end
 
-dB = handles.params.Amplifier.GainDB;
-handles.params.SG.Waveform.voltage = 30 * 10^(-dB/20);
-
 if get(handles.cmdUS, 'Value')
     if ~handles.data.scheme 
         set(handles.SA, 'BackgroundColor', [1 .5 .5]) 
         set(handles.SB, 'BackgroundColor', [1 1 1])
-        handles.PID.r(end) = handles.PID.TA;
+        handles.PID.r(end) = handles.PID.TA; % Use scheme A reference temp
     else
         set(handles.SB, 'BackgroundColor', [1 .5 .5]) 
         set(handles.SA, 'BackgroundColor', [1 1 1])
-        handles.PID.r(end) = handles.PID.TB;
+        handles.PID.r(end) = handles.PID.TB; % Use scheme B reference temp
     end
     
     if numel(handles.PID.t) <= 1
+        % If only data point recorded, can only calculate proportional
+        % error
         err_P = (handles.PID.r(end) - handles.PID.y(end));
         err_D = 0;
         err_I = 0;
         err_T = 0;
         intg_indices = 1;
     else 
+        % Calculates proportional, derivative, integral, and wind-up error
+        
         err_P = (handles.PID.r(end) - handles.PID.y(end));
         err_D = -(handles.PID.y(end) - handles.PID.y(end-1)) / (handles.PID.t(end) - handles.PID.t(end-1));
         
+        % Only calculate integral and wind-up error using values from the
+        % current scheme
         intg_indices = find(handles.PID.t >= handles.PID.t(end) - mod(handles.PID.t(end), 60 * handles.data.schemeprd));
         intg_Iintegrand = (handles.PID.r - handles.PID.y);
         intg_Tintegrand = (handles.PID.u - handles.PID.v);
@@ -263,22 +202,28 @@ if get(handles.cmdUS, 'Value')
         end
     end
     
+    % Calculate PIDaw variables from the error values and constants
     PID_P = err_P * handles.PID.Kp;
     PID_D = err_D * handles.PID.Kd;
     PID_I = err_I * handles.PID.Ki;    
     PID_T = err_T * handles.PID.Kt;   
 
+    % Calculate theoretic control parameter
     handles.PID.v(end) = PID_P + PID_I + PID_D + PID_T;
+    
+    % Actuated control parameter ranges from 0 to 1
     handles.PID.u(end) = max(0, min(1, handles.PID.v(end)));
        
     % Granularity of 20 steps to prevent excessive SG switching
     factor = floor(handles.PID.u(end)*20)/20;
+    
+    % Update output voltage to vary transducer voltage from 0 to max
     handles.params.SG.Waveform.voltage = handles.MaxVppTransducer * 10^(-handles.params.Amplifier.GainDB/20) * factor;
 
     if ~isequal(handles.params.SG.Waveform, handles.params.SG.WaveformSent)
         if factor <= 0
-            % Turn off US
-            handles.params.SG.Waveform.voltage = 0.002;
+            % It is faster to set to a minimum voltage than to turn off
+            handles.params.SG.Waveform.voltage = 0.002; % Minimum SG voltage
             handles.params = sub_SG_ApplySettings_POnly(handles.params);
             handles.params.SG.WaveformSent = handles.params.SG.Waveform;
         else
@@ -298,7 +243,7 @@ else
     set(handles.SA, 'BackgroundColor', [1 .5 .5]) 
     set(handles.SB, 'BackgroundColor', [1 1 1])
     
-    handles.params.SG.Waveform.voltage = 0.002;
+    handles.params.SG.Waveform.voltage = 0.002; % Minimum SG voltage
     if ~isequal(handles.params.SG.Waveform, handles.params.SG.WaveformSent)
         handles.params = sub_SG_ApplySettings_POnly(handles.params);
         handles.params.SG.WaveformSent = handles.params.SG.Waveform;
@@ -906,8 +851,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function V4B_Callback(hObject, eventdata, handles)
 % hObject    handle to V4B (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -928,8 +871,6 @@ function V4B_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function D4B_Callback(hObject, eventdata, handles)
 % hObject    handle to D4B (see GCBO)
@@ -952,8 +893,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function V3B_Callback(hObject, eventdata, handles)
 % hObject    handle to V3B (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -975,8 +914,6 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
 function D3B_Callback(hObject, eventdata, handles)
 % hObject    handle to D3B (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
@@ -997,8 +934,6 @@ function D3B_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-
 
 function T3B_Callback(hObject, eventdata, handles)
 % hObject    handle to T3B (see GCBO)
